@@ -42,6 +42,11 @@ button {
   cursor: pointer;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .hero {
   min-height: 76vh;
   padding: 24px clamp(18px, 4vw, 56px) 56px;
@@ -115,12 +120,19 @@ footer {
 
 .ghost-button,
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0 14px;
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-hero {
+  min-height: 58vh;
 }
 
 .ghost-button:hover,
@@ -300,6 +312,10 @@ select {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+
+.dashboard-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .leader-card,
@@ -509,6 +525,7 @@ footer strong {
 @media (max-width: 940px) {
   .hero-grid,
   .leader-grid,
+  .dashboard-grid,
   .match-grid {
     grid-template-columns: 1fr;
   }
