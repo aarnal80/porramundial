@@ -1,0 +1,76 @@
+name: Fix Supabase vote loading
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Patch app.js
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('app.js')
+          text = path.read_text(encoding='utf-8')
+          old = '''async function loadSharedVotes() {
+  if (!database) { state.online = false; return; }
+  if (!state.currentUserId) await ensureAuth();
+  if (!state.currentUserId) return;
+  const { data, error } = await database.from("votes").select("match_id,pick,participants(name)").order("updated_at", { ascending: false });
+  if (error) { console.error(error); state.online = false; return; }
+  state.online = true;
+  state.votes = {};
+  state.participants = [];
+  data.forEach((row) => { const name = clean(row.participants?.name || ""); if (!name) return; if (!state.votes[row.match_id]) state.votes[row.match_id] = {}; state.votes[row.match_id][name] = row.pick; if (!state.participants.includes(name)) state.participants.push(name); });
+  persist();
+}'''
+          new = '''async function loadSharedVotes() {
+  if (!database) { state.online = false; return; }
+  if (!state.currentUserId) await ensureAuth();
+  if (!state.currentUserId) return;
+
+  const participantsResult = await database.from("participants").select("user_id,name");
+  if (participantsResult.error) { console.error(participantsResult.error); state.online = false; return; }
+
+  const votesResult = await database.from("votes").select("match_id,user_id,pick").order("updated_at", { ascending: false });
+  if (votesResult.error) { console.error(votesResult.error); state.online = false; return; }
+
+  const namesByUser = Object.fromEntries((participantsResult.data || []).map((row) => [row.user_id, clean(row.name || "")]));
+  state.online = true;
+  state.votes = {};
+  state.participants = [];
+
+  (votesResult.data || []).forEach((row) => {
+    const name = namesByUser[row.user_id];
+    if (!name) return;
+    if (!state.votes[row.match_id]) state.votes[row.match_id] = {};
+    state.votes[row.match_id][name] = row.pick;
+    if (!state.participants.includes(name)) state.participants.push(name);
+  });
+
+  persist();
+}'''
+          if old not in text:
+            raise SystemExit('Target loadSharedVotes block was not found')
+          text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js
+          if git diff --cached --quiet; then
+            echo "No changes needed."
+          else
+            git commit -m "Fix Supabase vote loading"
+            git push
+          fi
