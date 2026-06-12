@@ -1,0 +1,153 @@
+.match-grid {
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+.matchday {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  overflow: hidden;
+}
+
+.matchday + .matchday {
+  margin-top: 18px;
+}
+
+.matchday-summary {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 76px;
+  padding: 16px 18px;
+  cursor: pointer;
+  background: linear-gradient(90deg, rgba(216, 180, 93, 0.22), rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(16px);
+}
+
+.matchday-summary::-webkit-details-marker {
+  display: none;
+}
+
+.matchday-summary::before {
+  content: "+";
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(216, 180, 93, 0.62);
+  border-radius: 8px;
+  color: var(--gold);
+  background: rgba(9, 17, 15, 0.42);
+  font-weight: 900;
+}
+
+.matchday[open] .matchday-summary::before {
+  content: "-";
+}
+
+.matchday-summary > span:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.matchday-summary strong {
+  font-size: 1.32rem;
+}
+
+.matchday-summary small {
+  color: var(--muted);
+}
+
+.matchday-count {
+  min-width: 106px;
+  border-radius: 8px;
+  padding: 9px 11px;
+  color: #171206;
+  background: var(--gold);
+  font-weight: 900;
+  text-align: center;
+}
+
+.matchday-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px;
+}
+
+.vote-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vote-button {
+  width: 100%;
+  min-width: 0;
+  flex: initial;
+}
+
+.vote-summary {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.voter-list {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.voter-list span {
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.voter-list strong {
+  line-height: 1.4;
+}
+
+@media (max-width: 940px) {
+  .matchday-summary {
+    position: static;
+  }
+
+  .matchday-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .matchday-summary {
+    grid-template-columns: auto 1fr;
+  }
+
+  .matchday-count {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .vote-row {
+    grid-template-columns: 1fr;
+  }
+}
