@@ -1,5 +1,5 @@
-const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
-const SUPABASE_ANON_KEY = "TU-ANON-KEY";
+const SUPABASE_URL = "https://dbrdacsfahiubvyetobx.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_uW9T2kNYrwHvCjwvuKwnLg_GB9SgHb-";
 const onlineEnabled = SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("TU-PROYECTO");
 const database = onlineEnabled && window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
