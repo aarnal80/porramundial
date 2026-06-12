@@ -1,0 +1,131 @@
+.match-grid {
+  grid-template-columns: 1fr;
+}
+
+.matchday {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  overflow: hidden;
+}
+
+.matchday + .matchday {
+  margin-top: 16px;
+}
+
+.matchday-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 72px;
+  padding: 16px 18px;
+  cursor: pointer;
+  background: rgba(216, 180, 93, 0.1);
+}
+
+.matchday-summary::-webkit-details-marker {
+  display: none;
+}
+
+.matchday-summary::before {
+  content: "+";
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(216, 180, 93, 0.5);
+  border-radius: 8px;
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.matchday[open] .matchday-summary::before {
+  content: "-";
+}
+
+.matchday-summary > span:first-child {
+  display: grid;
+  gap: 3px;
+  margin-right: auto;
+}
+
+.matchday-summary strong {
+  font-size: 1.25rem;
+}
+
+.matchday-summary small,
+.matchday-count {
+  color: var(--muted);
+}
+
+.matchday-count {
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.matchday-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 16px;
+}
+
+.vote-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vote-button {
+  width: 100%;
+  min-width: 0;
+  flex: initial;
+}
+
+.vote-summary {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.voter-list {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.voter-list span {
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.voter-list strong {
+  line-height: 1.4;
+}
+
+@media (max-width: 940px) {
+  .matchday-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .vote-row {
+    grid-template-columns: 1fr;
+  }
+}
