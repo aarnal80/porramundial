@@ -1,0 +1,254 @@
+name: Improve matchday navigation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/improve-matchday-navigation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  improve-navigation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply cleaner jornada navigation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          app = Path('app.js')
+          text = app.read_text(encoding='utf-8')
+          text = text.replace('  filter: "all",\n  online: false,', '  filter: "all",\n  matchday: Number(sessionStorage.getItem("prmMatchday") || "1"),\n  online: false,')
+          text = text.replace('    renderMatchdays(visibleMatches).forEach((section) => els.matchGrid.appendChild(section));', '    els.matchGrid.appendChild(renderMatchdays(visibleMatches));')
+          start = text.index('function renderMatchdays(summaries) {')
+          end = text.index('\nfunction renderMatch(summary) {', start)
+          new_function = '''function renderMatchdays(summaries) {
+  const matchdays = [
+    { id: 1, title: "Jornada 1", description: "Primer partido de cada seleccion", items: summaries.filter((item) => item.match.matchday === 1) },
+    { id: 2, title: "Jornada 2", description: "Segunda vuelta de la fase de grupos", items: summaries.filter((item) => item.match.matchday === 2) },
+    { id: 3, title: "Jornada 3", description: "Cierre de grupos y partidos simultaneos", items: summaries.filter((item) => item.match.matchday === 3) },
+  ].filter((matchday) => matchday.items.length);
+
+  if (!matchdays.some((matchday) => matchday.id === state.matchday)) {
+    state.matchday = matchdays[0]?.id || 1;
+  }
+
+  const active = matchdays.find((matchday) => matchday.id === state.matchday) || matchdays[0];
+  const shell = document.createElement("div");
+  shell.className = "matchday-shell";
+
+  const tabs = document.createElement("div");
+  tabs.className = "matchday-tabs";
+  tabs.setAttribute("role", "tablist");
+  tabs.setAttribute("aria-label", "Jornadas de la fase de grupos");
+
+  matchdays.forEach((matchday) => {
+    const button = document.createElement("button");
+    button.className = `matchday-tab ${matchday.id === state.matchday ? "active" : ""}`;
+    button.type = "button";
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(matchday.id === state.matchday));
+    button.innerHTML = `
+      <span>${matchday.title}</span>
+      <strong>${matchday.items.length}</strong>
+    `;
+    button.addEventListener("click", () => {
+      state.matchday = matchday.id;
+      sessionStorage.setItem("prmMatchday", String(state.matchday));
+      render();
+    });
+    tabs.appendChild(button);
+  });
+
+  const header = document.createElement("div");
+  header.className = "matchday-header";
+  header.innerHTML = `
+    <div>
+      <p class="eyebrow">Seleccion actual</p>
+      <h3>${active?.title || "Sin partidos"}</h3>
+    </div>
+    <span>${active?.description || "No hay partidos con este filtro"}</span>
+  `;
+
+  const grid = document.createElement("div");
+  grid.className = "matchday-grid";
+  (active?.items || []).forEach((item) => grid.appendChild(renderMatch(item)));
+
+  shell.append(tabs, header, grid);
+  return shell;
+}
+'''
+          text = text[:start] + new_function + text[end:]
+          app.write_text(text, encoding='utf-8')
+
+          Path('matchdays.css').write_text('''.match-grid {
+  grid-template-columns: 1fr;
+}
+
+.matchday-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.matchday-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(16, 28, 24, 0.96);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+}
+
+.matchday-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 54px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 900;
+}
+
+.matchday-tab strong {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: var(--gold);
+  background: rgba(216, 180, 93, 0.14);
+}
+
+.matchday-tab.active {
+  border-color: rgba(216, 180, 93, 0.65);
+  color: #171206;
+  background: var(--gold);
+}
+
+.matchday-tab.active strong {
+  color: var(--text);
+  background: rgba(9, 17, 15, 0.35);
+}
+
+.matchday-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 4px 2px;
+}
+
+.matchday-header h3 {
+  margin: 0;
+  font-size: clamp(1.55rem, 2.5vw, 2.4rem);
+  letter-spacing: 0;
+}
+
+.matchday-header span {
+  max-width: 360px;
+  color: var(--muted);
+  line-height: 1.45;
+  text-align: right;
+}
+
+.matchday-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.vote-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vote-button {
+  width: 100%;
+  min-width: 0;
+  flex: initial;
+}
+
+.vote-summary {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.voter-list {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.voter-list span {
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.voter-list strong {
+  line-height: 1.4;
+}
+
+@media (max-width: 940px) {
+  .matchday-tabs,
+  .matchday-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchday-tabs {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .matchday-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .matchday-header span {
+    max-width: none;
+    text-align: left;
+  }
+
+  .vote-row {
+    grid-template-columns: 1fr;
+  }
+}
+''', encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app.js matchdays.css
+            git commit -m "Improve jornada navigation"
+            git push
+          fi
