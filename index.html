@@ -4,117 +4,35 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Porra Real Madrid | Mundial 2026</title>
-    <meta
-      name="description"
-      content="Porra visual del Mundial 2026 para votar ganador o empate en cada partido del grupo Porra Real Madrid."
-    />
+    <meta name="description" content="Porra visual del Mundial 2026 para votar ganador o empate en cada partido del grupo Porra Real Madrid." />
     <link rel="preconnect" href="https://flagcdn.com" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   </head>
   <body data-page="matches">
     <header class="hero">
       <nav class="topbar" aria-label="Navegacion principal">
-        <div class="brand">
-          <span class="brand-mark">PRM</span>
-          <span>
-            <strong>Porra Real Madrid</strong>
-            <small>Mundial 2026</small>
-          </span>
-        </div>
+        <div class="brand"><span class="brand-mark">PRM</span><span><strong>Porra Real Madrid</strong><small>Mundial 2026</small></span></div>
         <div class="top-actions">
           <a class="ghost-button nav-link" href="dashboard.html">Dashboard</a>
+          <span class="sync-pill" id="syncStatus">Conectando</span>
           <button class="ghost-button" id="exportButton" type="button">Exportar</button>
           <label class="ghost-button import-label" for="importFile">Importar</label>
           <input id="importFile" type="file" accept="application/json" />
         </div>
       </nav>
-
       <section class="hero-grid">
-        <div class="hero-copy">
-          <p class="eyebrow">La porra del Mundial del grupo</p>
-          <h1>Porra Real Madrid</h1>
-          <p>
-            Vota si gana uno de los dos equipos o si termina en empate. El
-            dashboard calcula el resultado ganador para que el grupo tenga una
-            apuesta clara antes de cada partido.
-          </p>
-          <div class="credit">Hecha por Dr. Antonio J. Arnal Meinhardt</div>
-        </div>
-
-        <aside class="hero-panel" aria-label="Resumen general">
-          <div>
-            <span class="stat-number" id="totalVotes">0</span>
-            <span class="stat-label">votos registrados</span>
-          </div>
-          <div>
-            <span class="stat-number" id="lockedPicks">0</span>
-            <span class="stat-label">pronosticos lideres</span>
-          </div>
-          <div>
-            <span class="stat-number" id="matchCount">0</span>
-            <span class="stat-label">partidos</span>
-          </div>
-        </aside>
+        <div class="hero-copy"><p class="eyebrow">La porra del Mundial del grupo</p><h1>Porra Real Madrid</h1><p>Vota si gana uno de los dos equipos o si termina en empate. El dashboard calcula el resultado ganador para que el grupo tenga una apuesta clara antes de cada partido.</p><div class="credit">Hecha por Dr. Antonio J. Arnal Meinhardt</div></div>
+        <aside class="hero-panel" aria-label="Resumen general"><div><span class="stat-number" id="totalVotes">0</span><span class="stat-label">votos registrados</span></div><div><span class="stat-number" id="lockedPicks">0</span><span class="stat-label">pronosticos lideres</span></div><div><span class="stat-number" id="matchCount">0</span><span class="stat-label">partidos</span></div></aside>
       </section>
     </header>
-
     <main>
-      <section class="control-band" aria-label="Controles de votacion">
-        <div class="field">
-          <label for="voterName">Nombre del participante</label>
-          <input id="voterName" type="text" placeholder="Ej. Antonio" autocomplete="name" />
-        </div>
-        <div class="field">
-          <label for="matchFilter">Filtrar partidos</label>
-          <select id="matchFilter">
-            <option value="all">Todos los partidos</option>
-            <option value="today">Hoy y proximos</option>
-            <option value="hot">Con apuesta clara</option>
-            <option value="open">Sin lider claro</option>
-          </select>
-        </div>
-        <button class="primary-button" id="clearMyVotes" type="button">Borrar mis votos</button>
-      </section>
-
-      <section class="matches" aria-label="Partidos del Mundial">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Calendario</p>
-            <h2>Votaciones por partido</h2>
-          </div>
-          <p>
-            Las probabilidades son orientativas y editables en el archivo de datos; no son cuotas en tiempo real.
-          </p>
-        </div>
-        <div class="match-grid" id="matchGrid"></div>
-      </section>
+      <section class="control-band" aria-label="Controles de votacion"><div class="field"><label for="voterName">Nombre del participante</label><input id="voterName" type="text" placeholder="Ej. Antonio" autocomplete="name" /></div><div class="field"><label for="matchFilter">Filtrar partidos</label><select id="matchFilter"><option value="all">Todos los partidos</option><option value="today">Hoy y proximos</option><option value="hot">Con apuesta clara</option><option value="open">Sin lider claro</option></select></div><button class="primary-button" id="clearMyVotes" type="button">Borrar mis votos</button></section>
+      <section class="matches" aria-label="Partidos del Mundial"><div class="section-heading"><div><p class="eyebrow">Calendario</p><h2>Votaciones por partido</h2></div><p>Las probabilidades son orientativas y editables en el archivo de datos; no son cuotas en tiempo real.</p></div><div class="match-grid" id="matchGrid"></div></section>
     </main>
-
-    <template id="leaderTemplate">
-      <article class="leader-card">
-        <div class="mini-match"></div>
-        <div class="winner-line"></div>
-        <div class="bar-stack"></div>
-      </article>
-    </template>
-
-    <template id="matchTemplate">
-      <article class="match-card">
-        <div class="match-topline"></div>
-        <div class="teams"></div>
-        <div class="insight"></div>
-        <div class="market"></div>
-        <div class="vote-row"></div>
-        <div class="vote-summary"></div>
-      </article>
-    </template>
-
-    <footer>
-      <strong>Porra Real Madrid</strong>
-      <span>Web estatica lista para GitHub Pages.</span>
-      <span>Autor: Dr. Antonio J. Arnal Meinhardt</span>
-    </footer>
-
+    <template id="leaderTemplate"><article class="leader-card"><div class="mini-match"></div><div class="winner-line"></div><div class="bar-stack"></div></article></template>
+    <template id="matchTemplate"><article class="match-card"><div class="match-topline"></div><div class="teams"></div><div class="insight"></div><div class="market"></div><div class="vote-row"></div><div class="vote-summary"></div></article></template>
+    <footer><strong>Porra Real Madrid</strong><span>Web estatica lista para GitHub Pages.</span><span>Autor: Dr. Antonio J. Arnal Meinhardt</span></footer>
     <script src="app.js"></script>
   </body>
 </html>
