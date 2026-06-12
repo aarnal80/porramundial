@@ -1,0 +1,37 @@
+name: Link tabbed jornada navigation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/link-jornadas-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  link-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Link tabbed jornada assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          if 'jornadas-tabs.css' not in text:
+              text = text.replace('<link rel="stylesheet" href="jornadas.css" />', '<link rel="stylesheet" href="jornadas.css" />\n    <link rel="stylesheet" href="jornadas-tabs.css" />')
+          if 'jornadas-v2.js' not in text:
+              text = text.replace('<script src="app.js"></script>', '<script src="app.js"></script>\n    <script src="jornadas-v2.js"></script>')
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit if needed
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add index.html
+            git commit -m "Load tabbed jornada navigation"
+            git push
+          fi
