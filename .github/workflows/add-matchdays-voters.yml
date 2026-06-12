@@ -1,0 +1,148 @@
+name: Add matchday accordions and voter lists
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Patch app and styles
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          app = Path('app.js')
+          text = app.read_text(encoding='utf-8')
+
+          old = 'return { id: `${group.toLowerCase().replace(/\\s+/g, "-")}-${index + 1}-${slug(homeKey)}-${slug(awayKey)}`, date, group, venue, home, away, insight: insight(home, away), market: market(home, away) };'
+          new = 'return { matchday: Math.floor(index / 24) + 1, id: `${group.toLowerCase().replace(/\\s+/g, "-")}-${index + 1}-${slug(homeKey)}-${slug(awayKey)}`, date, group, venue, home, away, insight: insight(home, away), market: market(home, away) };'
+          text = text.replace(old, new)
+
+          old = 'if (els.matchGrid) { els.matchGrid.innerHTML = ""; visible.forEach((item) => els.matchGrid.appendChild(renderMatch(item))); }'
+          new = 'if (els.matchGrid) { els.matchGrid.innerHTML = ""; renderMatchdays(visible).forEach((section) => els.matchGrid.appendChild(section)); }'
+          text = text.replace(old, new)
+
+          marker = 'function renderMatch(item) {'
+          insert = '''function renderMatchdays(items) {
+  const matchdays = [
+    { title: "Jornada 1", description: "Primer partido de cada seleccion", items: items.filter((item) => item.match.matchday === 1) },
+    { title: "Jornada 2", description: "Segunda vuelta de la fase de grupos", items: items.filter((item) => item.match.matchday === 2) },
+    { title: "Jornada 3", description: "Cierre de grupos y partidos simultaneos", items: items.filter((item) => item.match.matchday === 3) },
+  ].filter((matchday) => matchday.items.length);
+
+  return matchdays.map((matchday, index) => {
+    const details = document.createElement("details");
+    details.className = "matchday";
+    details.open = index === 0 || state.filter !== "all";
+    const summary = document.createElement("summary");
+    summary.className = "matchday-summary";
+    summary.innerHTML = `<span><strong>${matchday.title}</strong><small>${matchday.description}</small></span><span class="matchday-count">${matchday.items.length} partidos</span>`;
+    const grid = document.createElement("div");
+    grid.className = "matchday-grid";
+    matchday.items.forEach((item) => grid.appendChild(renderMatch(item)));
+    details.append(summary, grid);
+    return details;
+  });
+}
+
+function renderMatch(item) {'''
+          if 'function renderMatchdays(items)' not in text:
+            text = text.replace(marker, insert)
+
+          old = 'node.querySelector(".vote-summary").innerHTML = `<span>Lider: <strong>${item.winnerLabel}</strong></span><span>${item.total} votos · ${item.confidence}% consenso</span>`;'
+          new = 'node.querySelector(".vote-summary").innerHTML = `<div class="summary-line"><span>Lider: <strong>${item.winnerLabel}</strong></span><span>${item.total} votos · ${item.confidence}% consenso</span></div><div class="voter-list"><span>Ya votaron</span><strong>${renderVoterNames(item.voters)}</strong></div>`;'
+          text = text.replace(old, new)
+
+          old = 'function summary(match) {\n  const counts = { home: 0, draw: 0, away: 0 };'
+          new = 'function summary(match) {\n  const voters = Object.keys(state.votes[match.id] || {}).sort((a, b) => a.localeCompare(b, "es"));\n  const counts = { home: 0, draw: 0, away: 0 };'
+          text = text.replace(old, new)
+          text = text.replace('return { match, total, options, winnerLabel:', 'return { match, total, options, voters, winnerLabel:')
+
+          marker = 'async function vote(matchId, pick) {'
+          insert = '''function renderVoterNames(voters) {
+  return voters.length ? voters.join(", ") : "Nadie todavia";
+}
+
+async function vote(matchId, pick) {'''
+          if 'function renderVoterNames(voters)' not in text:
+            text = text.replace(marker, insert)
+
+          old = '''async function loadSharedVotes() {
+  if (!database) { state.online = false; return; }
+  if (!state.currentUserId) await ensureAuth();
+  if (!state.currentUserId) return;
+  const { data, error } = await database.from("votes").select("match_id,pick,participants(name)").order("updated_at", { ascending: false });
+  if (error) { console.error(error); state.online = false; return; }
+  state.online = true;
+  state.votes = {};
+  state.participants = [];
+  data.forEach((row) => { const name = clean(row.participants?.name || ""); if (!name) return; if (!state.votes[row.match_id]) state.votes[row.match_id] = {}; state.votes[row.match_id][name] = row.pick; if (!state.participants.includes(name)) state.participants.push(name); });
+  persist();
+}'''
+          new = '''async function loadSharedVotes() {
+  if (!database) { state.online = false; return; }
+  if (!state.currentUserId) await ensureAuth();
+  if (!state.currentUserId) return;
+  const participantsResult = await database.from("participants").select("user_id,name");
+  if (participantsResult.error) { console.error(participantsResult.error); state.online = false; return; }
+  const votesResult = await database.from("votes").select("match_id,user_id,pick").order("updated_at", { ascending: false });
+  if (votesResult.error) { console.error(votesResult.error); state.online = false; return; }
+  const namesByUser = Object.fromEntries((participantsResult.data || []).map((row) => [row.user_id, clean(row.name || "")]));
+  state.online = true;
+  state.votes = {};
+  state.participants = [];
+  (votesResult.data || []).forEach((row) => { const name = namesByUser[row.user_id]; if (!name) return; if (!state.votes[row.match_id]) state.votes[row.match_id] = {}; state.votes[row.match_id][name] = row.pick; if (!state.participants.includes(name)) state.participants.push(name); });
+  persist();
+}'''
+          text = text.replace(old, new)
+          app.write_text(text, encoding='utf-8')
+
+          css = Path('styles.css')
+          styles = css.read_text(encoding='utf-8')
+          extra = r'''
+
+/* Jornada accordions and voting details */
+.match-grid { grid-template-columns: 1fr; }
+.matchday { border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.035); overflow: hidden; }
+.matchday + .matchday { margin-top: 16px; }
+.matchday-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 16px 18px; cursor: pointer; background: rgba(216,180,93,.1); }
+.matchday-summary::-webkit-details-marker { display: none; }
+.matchday-summary::before { content: "+"; display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border: 1px solid rgba(216,180,93,.5); border-radius: 8px; color: var(--gold); font-weight: 900; }
+.matchday[open] .matchday-summary::before { content: "-"; }
+.matchday-summary > span:first-child { display: grid; gap: 3px; margin-right: auto; }
+.matchday-summary strong { font-size: 1.25rem; }
+.matchday-summary small, .matchday-count { color: var(--muted); }
+.matchday-count { white-space: nowrap; font-weight: 800; }
+.matchday-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 16px; }
+.vote-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; flex-wrap: initial; }
+.vote-button { width: 100%; min-width: 0; flex: initial; }
+.vote-summary { align-items: stretch; flex-direction: column; gap: 10px; }
+.summary-line { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.voter-list { display: grid; gap: 5px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.05); }
+.voter-list span { color: var(--gold); font-size: .76rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.voter-list strong { line-height: 1.4; }
+@media (max-width: 940px) { .matchday-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .vote-row { grid-template-columns: 1fr; } }
+'''
+          if 'Jornada accordions and voting details' not in styles:
+            styles += extra
+          css.write_text(styles, encoding='utf-8')
+          PY
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.js styles.css
+          if git diff --cached --quiet; then
+            echo "No changes needed."
+          else
+            git commit -m "Organize matches by matchday and show voters"
+            git push
+          fi
